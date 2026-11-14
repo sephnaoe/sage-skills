@@ -1,7 +1,7 @@
 """Language parser package for Impact Analyzer.
 
 All parsers implement the LanguageParser interface and produce
-the same normalized output schema (sage.audit.schema).
+the same normalized output schema (impact_analyzer.schema).
 """
 
 from __future__ import annotations

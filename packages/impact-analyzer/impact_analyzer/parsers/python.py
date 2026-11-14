@@ -11,8 +11,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from sage.audit.parsers.base import LanguageParser
-from sage.audit.schema import ParseResult, Symbol, Edge, Diagnostic, FileInfo
+from impact_analyzer.parsers.base import LanguageParser
+from impact_analyzer.schema import ParseResult, Symbol, Edge, Diagnostic, FileInfo
 
 # Regex for import statements
 _IMPORT_RE = re.compile(r"^\s*(?:from\s+(\S+)\s+import|import\s+(\S+))", re.MULTILINE)

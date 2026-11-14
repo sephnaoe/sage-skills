@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
-from sage.audit.schema import ParseResult, FileInfo
+from impact_analyzer.schema import ParseResult, FileInfo
 
 
 class LanguageParser(ABC):

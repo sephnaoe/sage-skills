@@ -14,8 +14,8 @@ from typing import Any
 import tree_sitter
 import tree_sitter_python as tspython
 
-from sage.audit.parsers.base import LanguageParser
-from sage.audit.schema import ParseResult, Symbol, Edge, Diagnostic, FileInfo
+from impact_analyzer.parsers.base import LanguageParser
+from impact_analyzer.schema import ParseResult, Symbol, Edge, Diagnostic, FileInfo
 
 # Tree-sitter query for extracting imports, functions, classes
 PYTHON_QUERY = """

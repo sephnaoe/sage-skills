@@ -288,13 +288,24 @@ class CodeGraph:
                     if candidate in file_to_node:
                         target_node_id = file_to_node[candidate]
                         break
-                # Try matching by filename
+                # Try matching by filename (handle relative imports and extensions)
                 if target_node_id is None:
-                    basename = import_path.split("/")[-1]
+                    basename = import_path.split("/")[-1].lstrip("./")
                     for fpath, nid in file_to_node.items():
-                        if fpath.endswith(basename) or fpath.endswith(import_path):
+                        fname = fpath.split("/")[-1].split(".")[0]
+                        if fname == basename or fpath.endswith(basename) or fpath.endswith(import_path):
                             target_node_id = nid
                             break
+                    # Try with common extensions
+                    if target_node_id is None:
+                        for ext in (".js", ".ts", ".py", ".go", ".rs"):
+                            candidate = basename + ext
+                            for fpath, nid in file_to_node.items():
+                                if fpath.endswith(candidate):
+                                    target_node_id = nid
+                                    break
+                            if target_node_id is not None:
+                                break
             if target_node_id is not None:
                 resolved_edges.append(GraphEdge(
                     source_id=edge.source_id,

@@ -14,8 +14,8 @@ import tree_sitter
 import tree_sitter_javascript as tsjs
 import tree_sitter_typescript as tstypescript
 
-from sage.audit.parsers.base import LanguageParser
-from sage.audit.schema import ParseResult, Symbol, Edge, Diagnostic, FileInfo
+from impact_analyzer.parsers.base import LanguageParser
+from impact_analyzer.schema import ParseResult, Symbol, Edge, Diagnostic, FileInfo
 
 JS_QUERY = """
 (import_statement) @import

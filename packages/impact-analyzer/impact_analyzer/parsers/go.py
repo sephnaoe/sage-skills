@@ -9,8 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from sage.audit.parsers.base import LanguageParser
-from sage.audit.schema import ParseResult
+from impact_analyzer.parsers.base import LanguageParser
+from impact_analyzer.schema import ParseResult
 
 
 class GoParser(LanguageParser):
