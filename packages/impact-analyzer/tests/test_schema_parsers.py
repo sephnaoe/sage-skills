@@ -9,7 +9,7 @@ import pytest
 
 from sage.audit.schema import Symbol, Edge, Diagnostic, ParseResult, AnalysisResult, FileInfo
 from sage.audit.parsers import LanguageParser
-from sage.audit.python_parser import PythonParser
+from sage.audit.parsers import PythonParser
 
 
 class TestSchema:
