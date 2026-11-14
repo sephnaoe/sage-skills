@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-impact-analyzer"
+version = "1.0.0"
+description = "Fast, deterministic change-impact analysis for Python codebases"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9"
+authors = [{name = "Sage AI Assistant Platform"}]
+keywords = ["impact-analysis", "testing", "code-analysis", "python"]
+
+[project.urls]
+Homepage = "https://github.com/sephnaoe/sage-skills"
+Repository = "https://github.com/sephnaoe/sage-skills"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["impact_analyzer*"]

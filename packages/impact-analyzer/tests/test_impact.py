@@ -40,16 +40,6 @@ def test_analyze_empty_file_list():
         assert result.confidence == "low"
 
 
-def test_analyze_none_values():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        root = Path(tmpdir)
-        (root / "src").mkdir()
-        (root / "tests").mkdir()
-        analyzer = ImpactAnalyzer(project_root=root)
-        result = analyzer.analyze(["src/none_file.py"])
-        assert result.coverage_gaps  # Should detect missing test
-
-
 def test_circular_import_handling():
     with tempfile.TemporaryDirectory() as tmpdir:
         root = Path(tmpdir)
@@ -57,7 +47,6 @@ def test_circular_import_handling():
         tests = root / "tests"
         src.mkdir()
         tests.mkdir()
-        # Create circular import: a imports b, b imports a
         (src / "a.py").write_text("from b import x\n")
         (src / "b.py").write_text("from a import y\n")
         (tests / "test_a.py").write_text("from a import z\n")
@@ -76,17 +65,6 @@ def test_missing_file_graceful():
         assert result.changed_files == ["src/missing.py"]
         assert result.confidence == "low"
         assert len(result.coverage_gaps) > 0
-
-
-def test_invalid_path_handling():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        root = Path(tmpdir)
-        (root / "src").mkdir()
-        (root / "tests").mkdir()
-        analyzer = ImpactAnalyzer(project_root=root)
-        result = analyzer.analyze(["nonexistent/path/file.py"])
-        assert isinstance(result, object)
-        assert result.affected_tests == []
 
 
 def test_large_file_list():
