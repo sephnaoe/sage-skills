@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from sage.audit.parsers.base import LanguageParser
 from sage.audit.parsers.python import PythonParser
+from sage.audit.parsers.python_ts import PythonTreeSitterParser
 from sage.audit.parsers.javascript import JavaScriptParser
 from sage.audit.parsers.go import GoParser
 from sage.audit.parsers.rust import RustParser
@@ -15,6 +16,7 @@ from sage.audit.parsers.rust import RustParser
 __all__ = [
     "LanguageParser",
     "PythonParser",
+    "PythonTreeSitterParser",
     "JavaScriptParser",
     "GoParser",
     "RustParser",

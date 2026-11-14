@@ -1,6 +1,7 @@
 """Go language parser for Impact Analyzer.
 
-STUB: Not yet implemented. Will use tree-sitter for parsing.
+Status: Planned — will use tree-sitter for parsing.
+See: docs/implementation-plan.md Phase 1.6
 """
 
 from __future__ import annotations
@@ -13,7 +14,11 @@ from sage.audit.schema import ParseResult
 
 
 class GoParser(LanguageParser):
-    """Go language parser (stub)."""
+    """Go language parser.
+
+    Currently a placeholder. Implementation planned for Phase 1.6
+    using tree-sitter-go grammar.
+    """
 
     def language_name(self) -> str:
         return "go"
@@ -22,7 +27,10 @@ class GoParser(LanguageParser):
         return [".go"]
 
     def grammar_version(self) -> str:
-        return "tree-sitter-go-0.0.0 (not implemented)"
+        return "tree-sitter-go (planned)"
 
     def parse(self, file_path: Path, content: str) -> ParseResult:
-        raise NotImplementedError("Go parser not yet implemented. See implementation plan Phase 1.6.")
+        raise NotImplementedError(
+            "Go parser is planned for Phase 1.6. "
+            "See docs/implementation-plan.md for details."
+        )
