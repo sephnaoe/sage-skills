@@ -77,7 +77,7 @@ def test_large_file_list():
         files = []
         for i in range(50):
             (src / f"mod{i}.py").write_text(f"# module {i}\n")
-            (tests / f"test_mod{i}.py").write_text(f"from mod{i} import x\n")
+            (tests / f"test_mod{i}.py").write_text(f"from src.mod{i} import x\n")
             files.append(f"src/mod{i}.py")
         analyzer = ImpactAnalyzer(project_root=root)
         result = analyzer.analyze(files)
