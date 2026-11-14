@@ -14,9 +14,9 @@ import os
 from pathlib import Path
 from typing import Any
 
-from sage.audit.semantic.cache import SemanticCache
-from sage.audit.semantic.graph import CodeGraph
-from sage.audit.semantic.patterns import PatternMatch
+from impact_analyzer.semantic.cache import SemanticCache
+from impact_analyzer.semantic.graph import CodeGraph
+from impact_analyzer.semantic.patterns import PatternMatch
 
 
 class AIEnrichment:

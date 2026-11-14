@@ -1,22 +1,44 @@
 """ImpactAnalyzer — map changed files to affected tests via import analysis.
 
-Optimized: uses regex-based import extraction and caches graph to disk.
-Zero egress — pure local file reads.
+Uses tree-sitter parsers for multi-language support and CodeGraph
+for deterministic semantic analysis. Zero egress — pure local file reads.
 """
 
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
 import logging
 
+from impact_analyzer.parsers import PythonTreeSitterParser, LanguageParser
+from impact_analyzer.parsers.base import LanguageParser as BaseParser
+from impact_analyzer.parsers.javascript import JavaScriptParser
+from impact_analyzer.parsers.go import GoParser
+from impact_analyzer.parsers.rust import RustParser
+from impact_analyzer.semantic.graph import CodeGraph
+
 logger = logging.getLogger(__name__)
 
-# Regex for import statements
-_IMPORT_RE = re.compile(r"^\s*(?:from\s+(\S+)\s+import|import\s+(\S+))", re.MULTILINE)
+# Extension → parser mapping
+_EXT_TO_PARSER: dict[str, type] = {
+    ".py": PythonTreeSitterParser,
+    ".js": JavaScriptParser,
+    ".ts": JavaScriptParser,
+    ".jsx": JavaScriptParser,
+    ".tsx": JavaScriptParser,
+    ".go": GoParser,
+    ".rs": RustParser,
+}
+
+
+def _get_parser(path: Path) -> BaseParser | None:
+    """Get the appropriate parser for a file path."""
+    cls = _EXT_TO_PARSER.get(path.suffix.lower())
+    if cls is None:
+        return None
+    return cls()
 
 
 @dataclass
@@ -31,11 +53,11 @@ class ImpactResult:
 class ImpactAnalyzer:
     def __init__(self, project_root: Path | None = None):
         self.root = project_root or Path(__file__).resolve().parents[3]
-        self._graph_cache: dict[str, set[str]] | None = None
+        self._graph_cache: CodeGraph | None = None
         self._cache_path = self.root / "var" / "state" / "import-graph.json"
 
-    def _build_import_graph(self) -> dict[str, set[str]]:
-        """Build and cache the import graph."""
+    def _build_import_graph(self) -> CodeGraph:
+        """Build and cache the import graph using tree-sitter parsers."""
         if self._graph_cache is not None:
             return self._graph_cache
 
@@ -43,64 +65,50 @@ class ImpactAnalyzer:
         if self._cache_path.exists():
             try:
                 data = json.loads(self._cache_path.read_text(encoding="utf-8"))
-                # Convert lists back to sets
-                self._graph_cache = {k: set(v) for k, v in data.items()}
-                return self._graph_cache
-            except (json.JSONDecodeError, Exception) as e:
-                logger.error("Error loading cache: %s", e, exc_info=True)
+                # Rebuild graph from cached parse results not possible;
+                # fall through to rebuild
+            except (json.JSONDecodeError, Exception):
+                pass
 
-        graph: dict[str, set[str]] = {}
-        # Only scan src/ and tests/
+        graph = CodeGraph()
+        # Scan src/ and tests/
         for subdir in ("src", "tests"):
             base = self.root / subdir
             if not base.exists():
                 continue
-            for py_file in base.rglob("*.py"):
-                if "__pycache__" in str(py_file):
+            for file_path in base.rglob("*"):
+                if not file_path.is_file():
+                    continue
+                if "__pycache__" in str(file_path):
+                    continue
+                if file_path.suffix.lower() not in _EXT_TO_PARSER:
+                    continue
+                parser = _get_parser(file_path)
+                if parser is None:
                     continue
                 try:
-                    content = py_file.read_text(encoding="utf-8", errors="replace")
+                    content = file_path.read_text(encoding="utf-8", errors="replace")
                 except Exception:
                     continue
-
-                rel_path = str(py_file.relative_to(self.root)).replace("\\", "/")
-
-                for match in _IMPORT_RE.finditer(content):
-                    mod = match.group(1) or match.group(2)
-                    if not mod:
-                        continue
-                    # Clean up (remove trailing dots, split on comma)
-                    mod = mod.split(",")[0].strip().rstrip(".")
-                    mod_path = self._module_to_path(mod)
-                    if mod_path:
-                        graph.setdefault(mod_path, set()).add(rel_path)
+                try:
+                    rel_path = str(file_path.relative_to(self.root)).replace("\\", "/")
+                    result = parser.parse(Path(rel_path), content)
+                    graph.merge_parse_result(result)
+                except Exception as e:
+                    logger.debug("Parse failed for %s: %s", file_path, e)
 
         self._graph_cache = graph
-        # Save cache
+        graph.resolve_imports()
+        # Save cache metadata
         try:
             self._cache_path.parent.mkdir(parents=True, exist_ok=True)
             self._cache_path.write_text(
-                json.dumps({k: sorted(v) for k, v in graph.items()}, indent=2),
+                json.dumps({"node_count": len(graph.nodes), "edge_count": len(graph.edges)}, indent=2),
                 encoding="utf-8",
             )
         except Exception:
             pass
         return graph
-
-    def _module_to_path(self, module_name: str) -> str | None:
-        """Convert module name to file path."""
-        parts = module_name.split(".")
-        if parts and parts[0] == "sage":
-            rel = "src/" + "/".join(parts) + ".py"
-            if (self.root / rel).exists():
-                return rel
-            rel = "src/" + "/".join(parts) + "/__init__.py"
-            if (self.root / rel).exists():
-                return rel
-        rel = "/".join(parts) + ".py"
-        if (self.root / rel).exists():
-            return rel
-        return None
 
     def analyze(self, changed_files: list[str]) -> ImpactResult:
         """Analyze impact of changed files on tests."""
@@ -110,15 +118,21 @@ class ImpactAnalyzer:
 
         for changed in changed_files:
             changed_norm = changed.replace("\\", "/")
-            # Direct importers
-            for importer in graph.get(changed_norm, set()):
-                if importer.startswith("tests/"):
-                    affected_tests.add(importer)
-            # Transitive (one level)
-            for importer in list(graph.get(changed_norm, set())):
-                for transitive in graph.get(importer, set()):
-                    if transitive.startswith("tests/"):
-                        affected_tests.add(transitive)
+            # Find node IDs matching this file
+            file_nodes = [n.id for n in graph.nodes.values() if n.file == changed_norm or n.file.endswith(changed_norm)]
+            for node_id in file_nodes:
+                reachable = graph.reachable_from(node_id)
+                for rid in reachable:
+                    rnode = graph.nodes.get(rid)
+                    if rnode and rnode.file.startswith("tests/"):
+                        affected_tests.add(rnode.file)
+
+            # Also check reverse: who imports this file
+            for edge in graph.edges:
+                if edge.target_id in file_nodes or any(edge.target_id.endswith(changed_norm) for _ in [None]):
+                    src_node = graph.nodes.get(edge.source_id)
+                    if src_node and src_node.file.startswith("tests/"):
+                        affected_tests.add(src_node.file)
 
         # Coverage gaps
         coverage_gaps = []
@@ -138,10 +152,19 @@ class ImpactAnalyzer:
         if len(changed_files) > 5:
             confidence = "medium"
 
+        import_graph = {}
+        for changed in changed_files:
+            changed_norm = changed.replace("\\", "/")
+            import_graph[changed_norm] = sorted(
+                n.file for n in graph.nodes.values()
+                if any(e.source_id == n.id and e.target_id in [x.id for x in graph.nodes.values() if x.file == changed_norm]
+                       for e in graph.edges)
+            )
+
         return ImpactResult(
             changed_files=changed_files,
             affected_tests=sorted(affected_tests),
-            import_graph={k: sorted(v) for k, v in graph.items() if k in changed_files},
+            import_graph=import_graph,
             coverage_gaps=coverage_gaps,
             confidence=confidence,
         )

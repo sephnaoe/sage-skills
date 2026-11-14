@@ -8,7 +8,7 @@ A monorepo of shareable AI skills and tools from the Sage AI Assistant Platform.
 
 | Package | Description | Grade |
 |---------|-------------|-------|
-| [impact-analyzer](packages/impact-analyzer/) | Fast change-impact analysis for Python codebases | B (88/100) |
+| [impact-analyzer](packages/impact-analyzer/) | Multi-language change-impact analysis (Python, JS/TS, Go, Rust) | A (93/100) |
 
 ## Structure
 

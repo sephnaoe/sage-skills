@@ -6,10 +6,10 @@ AI enrichment is optional, cached, and never gates critical path.
 
 from __future__ import annotations
 
-from sage.audit.semantic.graph import CodeGraph, GraphNode, GraphEdge, PatternMatch
-from sage.audit.semantic.patterns import detect_all_patterns
-from sage.audit.semantic.cache import SemanticCache
-from sage.audit.semantic.enrichment import AIEnrichment
+from impact_analyzer.semantic.graph import CodeGraph, GraphNode, GraphEdge, PatternMatch
+from impact_analyzer.semantic.patterns import detect_all_patterns
+from impact_analyzer.semantic.cache import SemanticCache
+from impact_analyzer.semantic.enrichment import AIEnrichment
 
 __all__ = [
     "CodeGraph", "GraphNode", "GraphEdge", "PatternMatch",

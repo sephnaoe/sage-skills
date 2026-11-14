@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sage-impact-analyzer"
 version = "1.0.0"
-description = "Fast, deterministic change-impact analysis for Python codebases"
+description = "Fast, deterministic change-impact analysis for multi-language codebases"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.9"
@@ -19,7 +19,7 @@ dependencies = [
     "tree-sitter-rust>=0.24.0",
 ]
 authors = [{name = "Sage AI Assistant Platform"}]
-keywords = ["impact-analysis", "testing", "code-analysis", "python"]
+keywords = ["impact-analysis", "testing", "code-analysis", "python", "javascript", "typescript", "go", "rust"]
 
 [project.urls]
 Homepage = "https://github.com/sephnaoe/sage-skills"

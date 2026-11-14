@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sage.audit.semantic.graph import CodeGraph, PatternMatch
+from impact_analyzer.semantic.graph import CodeGraph, PatternMatch
 
 
 def detect_layered_architecture(graph: CodeGraph) -> PatternMatch:

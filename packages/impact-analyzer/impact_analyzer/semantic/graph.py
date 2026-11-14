@@ -228,4 +228,99 @@ class CodeGraph:
                     confidence=edge.confidence,
                     evidence=edge.evidence,
                 ))
+        graph.resolve_imports()
         return graph
+
+    def merge_parse_result(self, result) -> None:
+        for symbol in result.symbols:
+            node = GraphNode(
+                id=symbol.id,
+                kind=symbol.kind,
+                name=symbol.name,
+                file=symbol.file,
+                line=symbol.line,
+                language=result.file_info.language,
+                exported=symbol.exported,
+            )
+            self.add_node(node)
+        for edge in result.edges:
+            self.add_edge(GraphEdge(
+                source_id=edge.source_id,
+                target_id=edge.target_id,
+                kind=edge.kind,
+                confidence=edge.confidence,
+                evidence=edge.evidence,
+            ))
+
+    def resolve_imports(self) -> None:
+        """Resolve import edges to actual node IDs.
+
+        Import edges have target IDs like 'sage/audit/impact.py imports'.
+        This method matches them to actual node IDs in the graph.
+        """
+        # Build file → node ID mapping
+        file_to_node: dict[str, str] = {}
+        for node_id, node in self.nodes.items():
+            if node.kind == "module":
+                file_to_node[node.file] = node_id
+            # Also map by relative path
+            for prefix in ("src/", "tests/"):
+                if node.file.startswith(prefix):
+                    rel = node.file[len(prefix):]
+                    file_to_node[rel] = node_id
+
+        resolved_edges = []
+        for edge in self.edges:
+            if "imports" not in edge.kind and not edge.target_id.endswith(" imports"):
+                resolved_edges.append(edge)
+                continue
+            # Extract import path from target_id like 'sage/audit/impact.py imports'
+            import_path = edge.target_id.replace(" imports", "").strip()
+            # Try to find matching node
+            target_node_id = None
+            # Direct match
+            if import_path in file_to_node:
+                target_node_id = file_to_node[import_path]
+            else:
+                # Try with src/ prefix
+                for prefix in ("src/", ""):
+                    candidate = prefix + import_path
+                    if candidate in file_to_node:
+                        target_node_id = file_to_node[candidate]
+                        break
+                # Try matching by filename
+                if target_node_id is None:
+                    basename = import_path.split("/")[-1]
+                    for fpath, nid in file_to_node.items():
+                        if fpath.endswith(basename) or fpath.endswith(import_path):
+                            target_node_id = nid
+                            break
+            if target_node_id is not None:
+                resolved_edges.append(GraphEdge(
+                    source_id=edge.source_id,
+                    target_id=target_node_id,
+                    kind="imports",
+                    confidence=edge.confidence,
+                    evidence=edge.evidence,
+                ))
+            else:
+                # Keep unresolved edges (stdlib, third-party) as-is
+                resolved_edges.append(edge)
+        self.edges = resolved_edges
+
+    def reachable_from(self, start_id: str, max_depth: int = 100) -> set:
+        visited = set()
+        queue = [start_id]
+        depth = 0
+        while queue and depth < max_depth:
+            next_level = []
+            for node_id in queue:
+                if node_id in visited:
+                    continue
+                visited.add(node_id)
+                for edge in self.edges:
+                    if edge.source_id == node_id and edge.target_id not in visited:
+                        next_level.append(edge.target_id)
+            queue = next_level
+            depth += 1
+        return visited
