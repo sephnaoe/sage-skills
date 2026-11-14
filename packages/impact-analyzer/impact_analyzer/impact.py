@@ -49,6 +49,47 @@ class ImpactResult:
     coverage_gaps: list[str]
     confidence: str
 
+    def to_dict(self) -> dict:
+        """Convert to a JSON-serializable dict."""
+        return {
+            "changed_files": self.changed_files,
+            "affected_tests": self.affected_tests,
+            "import_graph": self.import_graph,
+            "coverage_gaps": self.coverage_gaps,
+            "confidence": self.confidence,
+        }
+
+    def to_json(self, indent: int = 2) -> str:
+        """Convert to JSON string."""
+        import json
+        return json.dumps(self.to_dict(), indent=indent)
+
+    def to_markdown(self) -> str:
+        """Convert to a human-readable markdown report."""
+        lines = ["# Impact Analysis Report", ""]
+        lines.append(f"**Confidence:** {self.confidence}")
+        lines.append(f"**Changed files:** {len(self.changed_files)}")
+        lines.append(f"**Affected tests:** {len(self.affected_tests)}")
+        lines.append("")
+        if self.changed_files:
+            lines.append("## Changed Files")
+            for f in self.changed_files:
+                lines.append(f"- `{f}`")
+            lines.append("")
+        if self.affected_tests:
+            lines.append("## Affected Tests (run these)")
+            for t in self.affected_tests:
+                lines.append(f"- `{t}`")
+            lines.append("")
+        if self.coverage_gaps:
+            lines.append("## Coverage Gaps (no tests found)")
+            for g in self.coverage_gaps:
+                lines.append(f"- {g}")
+            lines.append("")
+        if not self.affected_tests and not self.coverage_gaps:
+            lines.append("No impact detected.")
+        return "\n".join(lines)
+
 
 class ImpactAnalyzer:
     def __init__(self, project_root: Path | None = None):
@@ -109,6 +150,47 @@ class ImpactAnalyzer:
         except Exception:
             pass
         return graph
+
+    def analyze_git_changes(self, staged: bool = False, commit: str | None = None) -> ImpactResult:
+        """Auto-detect changed files from git and analyze impact.
+
+        Args:
+            staged: If True, analyze staged changes (--cached).
+            commit: If provided, analyze changes in that commit (e.g., 'HEAD~1').
+
+        Returns:
+            ImpactResult for the detected changes.
+        """
+        import subprocess
+        try:
+            if commit:
+                cmd = ["git", "diff", "--name-only", commit]
+            elif staged:
+                cmd = ["git", "diff", "--cached", "--name-only"]
+            else:
+                cmd = ["git", "diff", "--name-only", "HEAD"]
+            output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL)
+            changed = [f.strip() for f in output.splitlines() if f.strip()]
+            if not changed:
+                # Fall back to untracked + modified
+                cmd = ["git", "status", "--short"]
+                output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL)
+                changed = []
+                for line in output.splitlines():
+                    parts = line.strip().split()
+                    if len(parts) >= 2:
+                        changed.append(parts[-1])
+            if not changed:
+                return ImpactResult(
+                    changed_files=[], affected_tests=[], import_graph={},
+                    coverage_gaps=[], confidence="low",
+                )
+            return self.analyze(changed)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return ImpactResult(
+                changed_files=[], affected_tests=[], import_graph={},
+                coverage_gaps=["Could not detect git changes"], confidence="low",
+            )
 
     def analyze(self, changed_files: list[str]) -> ImpactResult:
         """Analyze impact of changed files on tests."""
