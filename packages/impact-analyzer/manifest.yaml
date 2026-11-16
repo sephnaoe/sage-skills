@@ -1,0 +1,35 @@
+name: impact-analyzer
+version: 1.0.0
+description: "Maps changed source files to the test files that exercise them using a cached import graph built with tree-sitter parsers (Python, JS/TS, Go, Rust)."
+kernel_api_version: "1.0"
+inputs:
+  - name: changed_files
+    type: "list[str]"
+    required: false
+    description: "Changed file paths; auto-detects from git when omitted"
+  - name: repo_root
+    type: "path"
+    required: false
+    description: "Repository root (defaults to current directory)"
+  - name: output_format
+    type: "str"
+    required: false
+    description: "Report format: text, json, or markdown"
+outputs:
+  - name: affected_tests
+    type: "list[str]"
+    description: "Test files that exercise the changed source files, direct plus transitive"
+  - name: report
+    type: "str"
+    description: "Rendered impact report (text, json, or markdown)"
+capability_dependencies: []
+config_keys: []
+permissions:
+  - read:filesystem
+persistent_state:
+  - "cached import graph"
+entry_points:
+  cli: "impact-analyzer analyze [--changed FILES] [--format text|json|md]"
+  api: "impact_analyzer.impact.analyze(root, changed_files)"
+  skill: "impact-analyzer"
+failure_mode: degrade

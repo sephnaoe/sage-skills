@@ -9,6 +9,8 @@ A monorepo of shareable AI skills and tools from the Sage AI Assistant Platform.
 | Package | Description | Grade |
 |---------|-------------|-------|
 | [impact-analyzer](packages/impact-analyzer/) | Multi-language change-impact analysis (Python, JS/TS, Go, Rust) | A (93/100) |
+| [permguard](packages/permguard/) | Declarative permission-shape engine: substring glob rules over whole command strings, last-match-wins, order-aware drift detection | A |
+| [healthgate](packages/healthgate/) | Declarative health-check engine: gate project phases on PASS/SKIPPED with a known-failure baseline | A |
 
 ## Structure
 

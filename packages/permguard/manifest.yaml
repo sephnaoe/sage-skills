@@ -1,0 +1,30 @@
+name: permguard
+version: 0.1.0
+description: "Declarative permission-shape engine: match whole command strings against substring glob rules (last match wins), resolve to allow/ask/deny, and detect order-aware rule-table drift."
+kernel_api_version: "1.0"
+inputs:
+  - name: command
+    type: "str"
+    required: true
+    description: "Full command string to resolve against the rule table"
+  - name: rules
+    type: "array[Rule]"
+    required: true
+    description: "Ordered rule entries, each with a pattern and an allow/ask/deny verdict, bucketed by longest literal run for sub-linear resolution"
+outputs:
+  - name: verdict
+    type: "str"
+    description: "Resolved permission verdict: allow, ask, or deny"
+  - name: drift_entries
+    type: "array[DriftEntry]"
+    description: "Behavioural differences between two rule tables: added, removed, reordered, or changed_verdict"
+capability_dependencies: []
+config_keys: []
+permissions:
+  - read:filesystem
+persistent_state: []
+entry_points:
+  cli: "permguard check <command> --rules rules.json"
+  api: "permguard.resolver.resolve(table, command)"
+  skill: "permguard"
+failure_mode: degrade

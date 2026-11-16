@@ -1,0 +1,49 @@
+name: healthgate
+version: 0.1.0
+description: "Declarative health-check engine: gate project phases on checks resolving to PASS/SKIPPED, with a known-failure baseline and a deferred mode for when no owner is available."
+kernel_api_version: "1.0"
+inputs:
+  - name: config_path
+    type: "path"
+    required: true
+    description: "Config file describing phases, checks and gate modes"
+  - name: root
+    type: "path"
+    required: true
+    description: "Project root the checks are executed against"
+  - name: phase_name
+    type: "str"
+    required: false
+    description: "Single phase to run; omitted runs all phases"
+  - name: busy
+    type: "bool"
+    required: false
+    description: "Defer every check when no owner is available (exit 3)"
+  - name: checks_module
+    type: "path"
+    required: false
+    description: "Python file exporting extra check_* functions, loaded dynamically"
+  - name: baseline_path
+    type: "path"
+    required: false
+    description: "YAML baseline of known failures; older launcher spellings are rejected as a usage error"
+outputs:
+  - name: report
+    type: "dict"
+    description: "Per-phase verdicts, per-check errors, findings and exit code"
+  - name: baseline_entries
+    type: "array[BaselineEntry]"
+    description: "Mapped check and finding-code pairs held in the known-failure baseline"
+  - name: exit_code
+    type: "int"
+    description: "Gate exit code: 0 pass, 1 fail, 2 usage, 3 incomplete"
+capability_dependencies: []
+config_keys: []
+permissions:
+  - read:filesystem
+persistent_state: []
+entry_points:
+  cli: "healthgate check --config healthgate.yml --root ."
+  api: "healthgate.engine.Engine.load_config / run_config"
+  skill: "healthgate"
+failure_mode: degrade
